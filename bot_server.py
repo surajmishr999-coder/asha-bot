@@ -220,3 +220,22 @@ async def wa_hook(request: Request, bg: BackgroundTasks):
 @app.get("/")
 def home():
     return {"service": "Asha AI bot", "telegram": bool(G("TELEGRAM_BOT_TOKEN")), "whatsapp": bool(G("WHATSAPP_TOKEN"))}
+
+
+# ---------------- Telegram webhook apne aap set ho (haath se link kholne ki zarurat nahi) ----------------
+def _auto_webhook() -> None:
+    url = G("PUBLIC_URL") or G("RENDER_EXTERNAL_URL")
+    tok, sec = G("TELEGRAM_BOT_TOKEN"), G("TELEGRAM_WEBHOOK_SECRET")
+    if not (url and tok and sec):
+        print("auto webhook skipped: URL / token / secret me se kuch missing hai")
+        return
+    try:
+        r = requests.post(f"https://api.telegram.org/bot{tok}/setWebhook", timeout=20,
+                          json={"url": url.rstrip("/") + "/telegram", "secret_token": sec,
+                                "allowed_updates": ["message", "edited_message"]})
+        print("telegram setWebhook:", r.status_code, r.text[:150])
+    except Exception as e:
+        print("setWebhook fail:", str(e)[:120])
+
+
+threading.Thread(target=_auto_webhook, daemon=True).start()
